@@ -733,8 +733,16 @@ void handle_mouse_scroll(void)
     height = hrp_iso_window_height_get();
     tolerance = 8;
 
+    // The macOS menu bar / notch covers the top edge of the screen, so the
+    // cursor cannot reach the topmost pixels needed to trigger upward
+    // edge-scrolling. Widen the top hot zone so scroll-up engages below it.
+    int top_tolerance = tolerance;
+#if SDL_PLATFORM_MACOS
+    top_tolerance = 32;
+#endif
+
     if (mouse_state.x < tolerance) {
-        if (mouse_state.y < tolerance) {
+        if (mouse_state.y < top_tolerance) {
             scroll_start(SCROLL_DIRECTION_UP_LEFT);
         } else if (mouse_state.y >= height - tolerance) {
             scroll_start(SCROLL_DIRECTION_DOWN_LEFT);
@@ -742,7 +750,7 @@ void handle_mouse_scroll(void)
             scroll_start(SCROLL_DIRECTION_LEFT);
         }
     } else if (mouse_state.x >= width - tolerance) {
-        if (mouse_state.y < tolerance) {
+        if (mouse_state.y < top_tolerance) {
             scroll_start(SCROLL_DIRECTION_UP_RIGHT);
         } else if (mouse_state.y >= height - tolerance) {
             scroll_start(SCROLL_DIRECTION_DOWN_RIGHT);
@@ -750,7 +758,7 @@ void handle_mouse_scroll(void)
             scroll_start(SCROLL_DIRECTION_RIGHT);
         }
     } else {
-        if (mouse_state.y < tolerance) {
+        if (mouse_state.y < top_tolerance) {
             scroll_start(SCROLL_DIRECTION_UP);
         } else if (mouse_state.y >= height - tolerance) {
             scroll_start(SCROLL_DIRECTION_DOWN);
