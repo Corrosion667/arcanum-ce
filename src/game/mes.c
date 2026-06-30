@@ -595,8 +595,11 @@ bool parse_field(TigFile* stream, char* buffer)
                 current_mes_file_path);
         }
 
-        // Store character in buffer if there's space.
-        if (pos < MAX_STRING) {
+        // Store character in buffer if there's space. Reserve one byte for the
+        // NUL terminator written after the loop; otherwise an over-long field
+        // (e.g. in a localized mes file) writes `buffer[MAX_STRING]`, one past
+        // the end of the array, aborting via the stack protector.
+        if (pos < MAX_STRING - 1) {
             buffer[pos++] = (char)ch;
         } else {
             too_long = true;
@@ -661,7 +664,12 @@ int consume_next_char(TigFile* stream)
         }
     }
 
-    return mes_file_parse_buffer[mes_file_parse_pos++];
+    // FIX: Cast to `unsigned char` before the implicit promotion to `int`. On
+    // platforms where `char` is signed (Apple targets, including arm64), a byte
+    // 0xFF would otherwise become -1 and be mistaken for EOF, truncating the
+    // file mid-parse. 0xFF is 'я' in Windows-1251 and is common in localized
+    // text, which made every Cyrillic mes file fail to load.
+    return (unsigned char)mes_file_parse_buffer[mes_file_parse_pos++];
 }
 
 /**
