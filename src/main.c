@@ -76,14 +76,6 @@ int main(int argc, char** argv)
     char msg[80];
 
 #if SDL_PLATFORM_MACOS
-    // Arcanum's data assets (tig.dat, arcanum*.dat, modules/) live in the
-    // folder that *contains* the .app bundle. SDL_GetBasePath() returns that
-    // folder because macos/Info.plist sets SDL_FILESYSTEM_BASE_DIR_TYPE=parent.
-    //
-    // Be defensive: if that path is wrong for any reason (e.g. an older bundle
-    // whose Info.plist lacks the key, where SDL_GetBasePath() points at
-    // Contents/Resources instead), fall back to the directory we were launched
-    // from, so running the binary directly from the data folder still works.
     {
         char launch_cwd[TIG_MAX_PATH];
         const char* base = SDL_GetBasePath();

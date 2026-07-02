@@ -44,9 +44,6 @@ void tig_str_parse_str_value(char** str, char* value, size_t size)
         *sep = '\0';
     }
 
-    // FIX: Clamp the copy to the destination buffer size. Localized (e.g.
-    // Russian) values are routinely longer than the original English and can
-    // exceed the caller's fixed buffer, overflowing it.
     size_t len = strlen(*str);
     if (len >= size) {
         len = size - 1;
