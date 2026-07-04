@@ -1407,7 +1407,7 @@ bool charedit_window_message_filter(TigMessage* msg)
                         cost = 1;
                     } else {
                         stat = charedit_stat_map_to_critter_stat(param);
-                        if (stat_level_get(charedit_obj, stat) >= stat_level_max(charedit_obj, stat)) {
+                        if (stat_base_get(charedit_obj, stat) >= stat_level_max(charedit_obj, stat)) {
                             charedit_error_msg.str = charedit_errors[CHAREDIT_ERR_STAT_AT_MAX];
                             intgame_message_window_display_msg(&charedit_error_msg);
                             return true;

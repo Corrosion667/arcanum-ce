@@ -519,7 +519,7 @@ int stat_level_get(int64_t obj, int stat)
 
     if (value < min_value) {
         value = min_value;
-    } else if (value > max_value) {
+    } else if (value > max_value && !STAT_IS_PRIMARY(stat)) {
         value = max_value;
     }
 
