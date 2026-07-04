@@ -1439,7 +1439,9 @@ bool charedit_window_message_filter(TigMessage* msg)
                 if (msg->data.button.button_handle == stru_5C8028[index].button_handle) {
                     param = stru_5C8028[index].art_num;
                     value = charedit_stat_value_get(charedit_obj, param);
-                    if (value == dword_64D304[param]) {
+                    if (value == dword_64D304[param]
+                        && (param == CHAREDIT_STAT_HP_PTS_MAXIMUM
+                            || param == CHAREDIT_STAT_FATIGUE_PTS_MAXIMUM)) {
                         charedit_error_msg.str = charedit_errors[CHAREDIT_ERR_STAT_AT_ACCEPTED_LEVEL];
                         intgame_message_window_display_msg(&charedit_error_msg);
                         return true;
