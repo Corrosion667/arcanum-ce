@@ -2475,10 +2475,7 @@ void charedit_refresh_tech_win(void)
 
     if (degree > 0
         && (charedit_mode != CHAREDIT_MODE_PASSIVE
-            || charedit_follower_editable())
-        && (charedit_mode == CHAREDIT_MODE_CREATE
-            || charedit_mode == CHAREDIT_MODE_3
-            || dword_64DEEC[charedit_selected_tech] < degree)) {
+            || charedit_follower_editable())) {
         tig_art_interface_id_create(648, 0, 0, 0, &(button_data.art_id));
         button_data.x = charedit_tech_degree_icons_x[degree - 1];
         button_data.y = charedit_tech_degree_icons_y[degree - 1];
