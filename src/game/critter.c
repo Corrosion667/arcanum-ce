@@ -2284,6 +2284,12 @@ bool critter_can_backstab(int64_t source_obj, int64_t target_obj)
     int weapon_type;
     bool is_pc = source_obj == player_get_local_pc_obj();
 
+    if (is_pc) {
+        tig_debug_printf("Backstab: points=%d training=%d\n",
+            basic_skill_points_get(source_obj, BASIC_SKILL_BACKSTAB),
+            basic_skill_training_get(source_obj, BASIC_SKILL_BACKSTAB));
+    }
+
     // At least one level of training in Backstab is required.
     if (basic_skill_training_get(source_obj, BASIC_SKILL_BACKSTAB) == 0) {
         if (is_pc) {
