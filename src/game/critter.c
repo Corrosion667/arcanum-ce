@@ -2282,14 +2282,21 @@ bool critter_can_backstab(int64_t source_obj, int64_t target_obj)
 {
     int64_t weapon_obj;
     int weapon_type;
+    bool is_pc = source_obj == player_get_local_pc_obj();
 
     // At least one level of training in Backstab is required.
     if (basic_skill_training_get(source_obj, BASIC_SKILL_BACKSTAB) == 0) {
+        if (is_pc) {
+            tig_debug_printf("Backstab: FAIL - no training (visit a trainer)\n");
+        }
         return false;
     }
 
     // Target must not be facing the attacker.
     if (critter_is_facing_to(target_obj, source_obj)) {
+        if (is_pc) {
+            tig_debug_printf("Backstab: FAIL - target is facing you (need rear arc)\n");
+        }
         return false;
     }
 
@@ -2297,6 +2304,9 @@ bool critter_can_backstab(int64_t source_obj, int64_t target_obj)
     weapon_obj = combat_critter_weapon(source_obj);
     if (weapon_obj == OBJ_HANDLE_NULL) {
         // Cannot backstab with bare hands.
+        if (is_pc) {
+            tig_debug_printf("Backstab: FAIL - no weapon equipped\n");
+        }
         return false;
     }
 
@@ -2304,6 +2314,9 @@ bool critter_can_backstab(int64_t source_obj, int64_t target_obj)
     weapon_type = tig_art_item_id_subtype_get(obj_field_int32_get(weapon_obj, OBJ_F_ITEM_USE_AID_FRAGMENT));
     if (weapon_type == TIG_ART_WEAPON_TYPE_DAGGER) {
         // Daggers are always allowed.
+        if (is_pc) {
+            tig_debug_printf("Backstab: OK - dagger, position valid\n");
+        }
         return true;
     }
 
@@ -2313,9 +2326,15 @@ bool critter_can_backstab(int64_t source_obj, int64_t target_obj)
         && (weapon_type == TIG_ART_WEAPON_TYPE_SWORD
             || weapon_type == TIG_ART_WEAPON_TYPE_AXE
             || weapon_type == TIG_ART_WEAPON_TYPE_TWO_HANDED_SWORD)) {
+        if (is_pc) {
+            tig_debug_printf("Backstab: OK - expert weapon, position valid\n");
+        }
         return true;
     }
 
+    if (is_pc) {
+        tig_debug_printf("Backstab: FAIL - wrong weapon (need dagger, or sword/axe with Expert)\n");
+    }
     return false;
 }
 
