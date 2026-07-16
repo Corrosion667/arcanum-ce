@@ -2703,12 +2703,22 @@ void combat_apply_resistance(CombatContext* combat)
     }
 
     for (damage_type = 0; damage_type < DAMAGE_TYPE_COUNT; damage_type++) {
+        int before = combat->dam[damage_type];
+
         resistance = object_get_resistance(combat->target_obj, combat_damage_to_resistance_tbl[damage_type], false);
         if (damage_type == DAMAGE_TYPE_FATIGUE) {
             resistance = 3 * resistance / 4;
         }
         if (resistance > 0) {
             combat->dam[damage_type] -= resistance * combat->dam[damage_type] / 100;
+        }
+
+        if (before != 0 && player_is_local_pc_obj(combat->attacker_obj)) {
+            tig_debug_printf("Resist: dmgtype=%d resist=%d%% dam %d -> %d\n",
+                damage_type,
+                resistance,
+                before,
+                combat->dam[damage_type]);
         }
     }
 }
