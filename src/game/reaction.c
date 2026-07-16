@@ -207,6 +207,14 @@ int sub_4C0D00(int64_t npc_obj, int64_t pc_obj, unsigned int flags)
     int value;
     int64_t mind_controlled_by_obj;
 
+    if (flags != 0
+        && obj_field_int32_get(pc_obj, OBJ_F_TYPE) == OBJ_TYPE_PC) {
+        tig_debug_printf("reaction(KOS): shitlist=%d race_bonus=%d base=%d\n",
+            ai_shitlist_has(npc_obj, pc_obj) ? 1 : 0,
+            sub_4C1500(npc_obj, pc_obj, flags),
+            sub_4C1290(npc_obj, pc_obj));
+    }
+
     if (ai_shitlist_has(npc_obj, pc_obj)) {
         return 0;
     }
