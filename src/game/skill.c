@@ -2115,6 +2115,18 @@ bool skill_invocation_check_crit_hit(int roll, int effectiveness, SkillInvocatio
     // Apply effects.
     chance = effect_adjust_crit_hit_chance(skill_invocation->source.obj, chance);
 
+    if ((skill_invocation->flags & SKILL_INVOCATION_BACKSTAB) != 0
+        && player_is_local_pc_obj(skill_invocation->source.obj)) {
+        tig_debug_printf("Backstab crit: level=%d(+%d) target_lvl=-%d master=%s chance=%d roll=%d -> %s\n",
+            basic_skill_level(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB),
+            2 * basic_skill_level(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB),
+            stat_level_get(skill_invocation->target.obj, STAT_LEVEL),
+            basic_skill_training_get(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB) == TRAINING_MASTER ? "YES(+20)" : "no",
+            chance,
+            roll,
+            roll <= chance ? "CRIT!" : "no crit");
+    }
+
     // Compare the roll (1-100) to the final critical hit chance to determine if
     // a critical hit occurs.
     return roll <= chance;
