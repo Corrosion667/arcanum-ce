@@ -3454,6 +3454,9 @@ int ai_check_kos(int64_t source_obj, int64_t target_obj)
 
                         if ((npc_flags & ONF_KOS_OVERRIDE) == 0
                             && !critter_faction_same(source_obj, target_obj)) {
+                            if (player_is_local_pc_obj(target_obj)) {
+                                tig_debug_printf("KOS reason=FACTION\n");
+                            }
                             return AI_KOS_FACTION;
                         }
                     }
@@ -3462,14 +3465,27 @@ int ai_check_kos(int64_t source_obj, int64_t target_obj)
 
                     if (obj_type == OBJ_TYPE_PC
                         && sub_4C0CE0(source_obj, target_obj) <= ai_params.field_28) {
+                        if (player_is_local_pc_obj(target_obj)) {
+                            tig_debug_printf("KOS reason=REACTION value=%d threshold=%d\n",
+                                sub_4C0CE0(source_obj, target_obj), ai_params.field_28);
+                        }
                         return AI_KOS_REACTION;
                     }
 
                     if (abs(stat_level_get(source_obj, STAT_ALIGNMENT) - stat_level_get(target_obj, STAT_ALIGNMENT)) >= ai_params.field_2C) {
+                        if (player_is_local_pc_obj(target_obj)) {
+                            tig_debug_printf("KOS reason=ALIGNMENT npc=%d pc=%d threshold=%d\n",
+                                stat_level_get(source_obj, STAT_ALIGNMENT),
+                                stat_level_get(target_obj, STAT_ALIGNMENT),
+                                ai_params.field_2C);
+                        }
                         return AI_KOS_ALIGNMENT;
                     }
 
                     if (ai_check_decoy(source_obj, target_obj)) {
+                        if (player_is_local_pc_obj(target_obj)) {
+                            tig_debug_printf("KOS reason=DECOY\n");
+                        }
                         return AI_KOS_DECOY;
                     }
                 }
