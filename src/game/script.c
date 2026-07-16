@@ -289,6 +289,12 @@ bool script_execute(ScriptInvocation* invocation)
     ScriptCondition statement;
     bool run_default;
 
+    if (invocation->script != NULL && invocation->script->num == 2853) {
+        tig_debug_printf("Script 2853 (Craig): SAP=%d line=%d\n",
+            invocation->attachment_point,
+            invocation->line);
+    }
+
     if (tig_net_is_active()
         && !tig_net_is_host()) {
         // NOTE: Script at index 1 is not being checked, probably a bug.
