@@ -1500,14 +1500,21 @@ void combat_dmg(CombatContext* combat)
     }
 
     if (player_is_local_pc_obj(combat->attacker_obj)) {
+        const char* crit_mult = "none";
+
+        if ((dam_flags & CDF_BONUS_DAM_200) != 0) {
+            crit_mult = "x3";
+        } else if ((dam_flags & CDF_BONUS_DAM_100) != 0) {
+            crit_mult = "x2";
+        } else if ((dam_flags & CDF_BONUS_DAM_50) != 0) {
+            crit_mult = "x1.5";
+        }
+
         tig_debug_printf("Final dam: %d (resist) -> %d (difficulty) -> %d | crit=%s%s%s\n",
             dam_after_resist,
             dam_after_difficulty,
             dam,
-            (dam_flags & CDF_BONUS_DAM_200) != 0 ? "x3"
-                : (dam_flags & CDF_BONUS_DAM_100) != 0 ? "x2"
-                    : (dam_flags & CDF_BONUS_DAM_50) != 0 ? "x1.5"
-                        : "none",
+            crit_mult,
             (dam_flags & CDF_STUN) != 0 ? " STUN" : "",
             (dam_flags & CDF_KNOCKOUT) != 0 ? " KNOCKOUT" : "");
     }
