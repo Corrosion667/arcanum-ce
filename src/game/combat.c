@@ -1474,6 +1474,8 @@ void combat_dmg(CombatContext* combat)
         dam_flags |= CDF_DAMAGE_ARMOR;
     }
 
+    int dam_after_resist = dam;
+
     if (player_is_pc_obj(combat->attacker_obj)) {
         combat->game_difficulty = gamelib_game_difficulty_get();
 
@@ -1487,12 +1489,27 @@ void combat_dmg(CombatContext* combat)
         }
     }
 
+    int dam_after_difficulty = dam;
+
     if ((dam_flags & CDF_BONUS_DAM_200) != 0) {
         dam *= 3;
     } else if ((dam_flags & CDF_BONUS_DAM_100) != 0) {
         dam *= 2;
     } else if ((dam_flags & CDF_BONUS_DAM_50) != 0) {
         dam += dam / 2;
+    }
+
+    if (player_is_local_pc_obj(combat->attacker_obj)) {
+        tig_debug_printf("Final dam: %d (resist) -> %d (difficulty) -> %d | crit=%s%s%s\n",
+            dam_after_resist,
+            dam_after_difficulty,
+            dam,
+            (dam_flags & CDF_BONUS_DAM_200) != 0 ? "x3"
+                : (dam_flags & CDF_BONUS_DAM_100) != 0 ? "x2"
+                    : (dam_flags & CDF_BONUS_DAM_50) != 0 ? "x1.5"
+                        : "none",
+            (dam_flags & CDF_STUN) != 0 ? " STUN" : "",
+            (dam_flags & CDF_KNOCKOUT) != 0 ? " KNOCKOUT" : "");
     }
 
     if (obj_type_is_critter(obj_type)) {
