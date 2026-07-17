@@ -2394,6 +2394,14 @@ void combat_process_crit_hit(CombatContext* combat)
         chance += 10;
     }
 
+    if (player_is_local_pc_obj(combat->attacker_obj)) {
+        tig_debug_printf("Crit effect chance=%d (x3 if<=%d, x2 if<=%d, x1.5 if<=%d)\n",
+            chance,
+            chance + 10,
+            chance + 30,
+            chance + 60);
+    }
+
     if (!npc_attacks_pc) {
         if (random_between(1, 100) <= chance + 10) {
             combat->dam_flags |= CDF_BONUS_DAM_200;
