@@ -2675,13 +2675,29 @@ void combat_calc_dmg(CombatContext* combat)
             switch (damage_type) {
             case DAMAGE_TYPE_NORMAL:
                 if ((combat->flags & 0x8000) != 0) {
-                    int backstab_bonus = basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB) * 5;
+                    int weapon_roll = damage;
+                    int backstab_level = basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB);
+                    int backstab_bonus = backstab_level * 5;
                     damage += backstab_bonus;
-                    tig_debug_printf("Backstab: HIT - unaware target, +%d damage (x5)\n", backstab_bonus);
+                    tig_debug_printf("Backstab: HIT unaware | weapon roll=%d (range %d-%d) + bonus %d (lvl %d x5) = %d\n",
+                        weapon_roll,
+                        min_damage,
+                        max_damage,
+                        backstab_bonus,
+                        backstab_level,
+                        damage);
                 } else if ((combat->flags & 0x4000) != 0) {
-                    int backstab_bonus = basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB);
+                    int weapon_roll = damage;
+                    int backstab_level = basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB);
+                    int backstab_bonus = backstab_level;
                     damage += backstab_bonus;
-                    tig_debug_printf("Backstab: HIT - aware target, +%d damage (x1)\n", backstab_bonus);
+                    tig_debug_printf("Backstab: HIT aware | weapon roll=%d (range %d-%d) + bonus %d (lvl %d x1) = %d\n",
+                        weapon_roll,
+                        min_damage,
+                        max_damage,
+                        backstab_bonus,
+                        backstab_level,
+                        damage);
                 }
                 break;
             case DAMAGE_TYPE_FATIGUE:
