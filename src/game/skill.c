@@ -2096,6 +2096,8 @@ bool skill_invocation_check_crit_hit(int roll, int effectiveness, SkillInvocatio
             obj_field_int32_get(skill_invocation->item.obj, OBJ_F_WEAPON_MAGIC_CRIT_HIT_CHANCE));
     }
 
+    int backstab_base = chance;
+
     // Apply backstab-specific mechanics.
     if ((skill_invocation->flags & SKILL_INVOCATION_BACKSTAB) != 0) {
         // The backstab bonus to critical hit is the difference between doubled
@@ -2117,11 +2119,14 @@ bool skill_invocation_check_crit_hit(int roll, int effectiveness, SkillInvocatio
 
     if ((skill_invocation->flags & SKILL_INVOCATION_BACKSTAB) != 0
         && player_is_local_pc_obj(skill_invocation->source.obj)) {
-        tig_debug_printf("Backstab crit: level=%d(+%d) target_lvl=-%d master=%s chance=%d roll=%d -> %s\n",
-            basic_skill_level(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB),
+        tig_debug_printf("Backstab crit: base=%d (eff %d / %d) +%d(skill lvl %d) -%d(target lvl) +%d(master) = %d | roll=%d -> %s\n",
+            backstab_base,
+            effectiveness,
+            divisor,
             2 * basic_skill_level(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB),
+            basic_skill_level(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB),
             stat_level_get(skill_invocation->target.obj, STAT_LEVEL),
-            basic_skill_training_get(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB) == TRAINING_MASTER ? "YES(+20)" : "no",
+            basic_skill_training_get(skill_invocation->source.obj, BASIC_SKILL_BACKSTAB) == TRAINING_MASTER ? 20 : 0,
             chance,
             roll,
             roll <= chance ? "CRIT!" : "no crit");
