@@ -34,7 +34,8 @@ typedef enum PoisonEventType {
 } PoisonEventType;
 
 static bool poison_timeevent_check(TimeEvent* timeevent);
-static bool poison_timeevent_get(int64_t obj, int event, TimeEvent* timeevent);
+static bool poison_timeevent_take_check(TimeEvent* timeevent);
+static bool poison_timeevent_take(int64_t obj, int event, TimeEvent* timeevent);
 static bool poison_timeevent_schedule(int64_t obj, int poison, bool recovery);
 
 /**
@@ -257,6 +258,8 @@ static char* stat_short_names[STAT_COUNT];
 
 // 0x5F8728
 static int64_t poison_test_obj;
+
+static bool poison_test_found;
 
 static TimeEvent poison_test_timeevent;
 
@@ -1093,6 +1096,7 @@ void stat_poison_turn_based_process(int64_t obj)
 
     if (obj == OBJ_HANDLE_NULL
         || !obj_handle_is_valid(obj)
+        || critter_is_dead(obj)
         || (obj_field_int32_get(obj, OBJ_F_FLAGS) & (OF_DESTROYED | OF_OFF)) != 0) {
         return;
     }
@@ -1102,9 +1106,7 @@ void stat_poison_turn_based_process(int64_t obj)
         return;
     }
 
-    poison_test_obj = obj;
-    poison_test_event = POISON_EVENT_DAMAGE;
-    timeevent_clear_all_ex(TIMEEVENT_TYPE_POISON, poison_timeevent_check);
+    poison_timeevent_take(obj, POISON_EVENT_DAMAGE, &timeevent);
 
     timeevent.type = TIMEEVENT_TYPE_POISON;
     timeevent.params[0].integer_value = POISON_EVENT_DAMAGE;
@@ -1117,9 +1119,9 @@ void stat_poison_turn_based_process(int64_t obj)
         return;
     }
 
-    if (!poison_timeevent_get(obj, POISON_EVENT_RECOVERY, &timeevent)) {
+    if (!poison_timeevent_take(obj, POISON_EVENT_RECOVERY, &timeevent)) {
         poison_timeevent_schedule(obj, poison, true);
-        if (!poison_timeevent_get(obj, POISON_EVENT_RECOVERY, &timeevent)) {
+        if (!poison_timeevent_take(obj, POISON_EVENT_RECOVERY, &timeevent)) {
             return;
         }
     }
@@ -1128,10 +1130,6 @@ void stat_poison_turn_based_process(int64_t obj)
         ? -timeevent.params[2].integer_value
         : POISON_RECOVERY_TURNS;
     rounds--;
-
-    poison_test_obj = obj;
-    poison_test_event = POISON_EVENT_RECOVERY;
-    timeevent_clear_all_ex(TIMEEVENT_TYPE_POISON, poison_timeevent_check);
 
     if (rounds > 0) {
         timeevent.params[2].integer_value = -rounds;
@@ -1145,9 +1143,7 @@ void stat_poison_turn_based_process(int64_t obj)
         }
         stat_base_set(obj, STAT_POISON_LEVEL, poison);
         if (poison == 0) {
-            poison_test_obj = obj;
-            poison_test_event = POISON_EVENT_DAMAGE;
-            timeevent_clear_all_ex(TIMEEVENT_TYPE_POISON, poison_timeevent_check);
+            poison_timeevent_take(obj, POISON_EVENT_DAMAGE, &timeevent);
         }
     }
 }
@@ -1160,15 +1156,31 @@ bool poison_timeevent_check(TimeEvent* timeevent)
         return false;
     }
 
-    poison_test_timeevent = *timeevent;
     return true;
 }
 
-bool poison_timeevent_get(int64_t obj, int event, TimeEvent* timeevent)
+bool poison_timeevent_take_check(TimeEvent* timeevent)
+{
+    if (!poison_timeevent_check(timeevent)) {
+        return false;
+    }
+
+    if (!poison_test_found
+        || datetime_compare(&timeevent->datetime, &poison_test_timeevent.datetime) < 0) {
+        poison_test_timeevent = *timeevent;
+        poison_test_found = true;
+    }
+
+    return true;
+}
+
+bool poison_timeevent_take(int64_t obj, int event, TimeEvent* timeevent)
 {
     poison_test_obj = obj;
     poison_test_event = event;
-    if (!timeevent_any(TIMEEVENT_TYPE_POISON, poison_timeevent_check)) {
+    poison_test_found = false;
+    timeevent_clear_all_ex(TIMEEVENT_TYPE_POISON, poison_timeevent_take_check);
+    if (!poison_test_found) {
         return false;
     }
 
