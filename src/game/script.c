@@ -1784,6 +1784,10 @@ int script_execute_action(ScriptAction* action, int line, ScriptState* state)
         int lower = script_get_value(action->op_type[0], action->op_value[0], state);
         int upper = script_get_value(action->op_type[1], action->op_value[1], state);
         int value = random_between(lower, upper);
+        if (state->invocation->script->num == 30250 || state->invocation->script->num == 30252) {
+            tig_debug_printf("Scourge[%d] L%d: chance roll random(%d-%d)=%d\n",
+                state->invocation->script->num, line, lower, upper, value);
+        }
         script_set_value(action->op_type[2], action->op_value[2], state, value);
         return NEXT;
     }
@@ -1921,6 +1925,11 @@ int script_execute_action(ScriptAction* action, int line, ScriptState* state)
         int64_t source_obj = script_get_obj(action->op_type[0], action->op_value[0], state);
         int spell = script_get_value(action->op_type[1], action->op_value[1], state);
         int64_t target_obj = script_get_obj(action->op_type[2], action->op_value[2], state);
+
+        if (state->invocation->script->num == 30250 || state->invocation->script->num == 30252) {
+            tig_debug_printf("Scourge[%d] L%d: PROC cast spell %d\n",
+                state->invocation->script->num, line, spell);
+        }
 
         MagicTechInvocation mt_invocation;
         magictech_invocation_init(&mt_invocation, source_obj, spell);

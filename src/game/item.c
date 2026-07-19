@@ -3396,6 +3396,8 @@ int item_weapon_min_strength(int64_t item_obj, int64_t critter_obj)
 // TODO: Lots of jumps, check.
 //
 // 0x465F70
+bool item_weapon_damage_log_active = false;
+
 void item_weapon_damage(int64_t weapon_obj, int64_t critter_obj, int damage_type, int skill, bool a5, int* min_dam_ptr, int* max_dam_ptr)
 {
     int min_dam;
@@ -3405,6 +3407,10 @@ void item_weapon_damage(int64_t weapon_obj, int64_t critter_obj, int damage_type
     int v1;
     int64_t gauntlet_obj;
     int unarmed_dam;
+
+    bool dbg = item_weapon_damage_log_active
+        && weapon_obj != OBJ_HANDLE_NULL
+        && obj_field_int32_get(weapon_obj, OBJ_F_ITEM_DESCRIPTION_EFFECTS) == 30739;
 
     if (skill == SKILL_MELEE) {
         bonus_dam = stat_level_get(critter_obj, STAT_DAMAGE_BONUS);
@@ -3447,9 +3453,16 @@ void item_weapon_damage(int64_t weapon_obj, int64_t critter_obj, int damage_type
         }
     }
 
+    if (dbg && max_dam > 0) {
+        tig_debug_printf("DmgCalc[Scourge] type=%d: base %d-%d\n", damage_type, min_dam, max_dam);
+    }
+
     if (skill == SKILL_MELEE) {
         if (v1 != 100) {
             max_dam = min_dam + (v1 * (max_dam - min_dam) + 50) / 100;
+            if (dbg && max_dam > 0) {
+                tig_debug_printf("  after proficiency %d%%: %d-%d\n", v1, min_dam, max_dam);
+            }
         }
     }
 
@@ -3472,14 +3485,21 @@ void item_weapon_damage(int64_t weapon_obj, int64_t critter_obj, int damage_type
         } else {
             max_dam = 1;
         }
+
+        if (dbg && max_dam > 0) {
+            tig_debug_printf("  +STR bonus %d: %d-%d\n", bonus_dam, min_dam, max_dam);
+        }
     }
 
     if (weapon_obj != OBJ_HANDLE_NULL && !a5) {
         if (obj_field_int32_get(weapon_obj, OBJ_F_TYPE) == OBJ_TYPE_WEAPON) {
-            int adj = obj_arrayfield_int32_get(weapon_obj, OBJ_F_WEAPON_MAGIC_DAMAGE_ADJ_IDX, damage_type);
-            adj = item_adjust_magic(weapon_obj, critter_obj, adj);
+            int raw_adj = obj_arrayfield_int32_get(weapon_obj, OBJ_F_WEAPON_MAGIC_DAMAGE_ADJ_IDX, damage_type);
+            int adj = item_adjust_magic(weapon_obj, critter_obj, raw_adj);
             min_dam += adj;
             max_dam += adj;
+            if (dbg && max_dam > 0) {
+                tig_debug_printf("  +magic adj raw=%d scaled=%d: %d-%d\n", raw_adj, adj, min_dam, max_dam);
+            }
         }
     }
 
