@@ -1926,11 +1926,6 @@ int script_execute_action(ScriptAction* action, int line, ScriptState* state)
         int spell = script_get_value(action->op_type[1], action->op_value[1], state);
         int64_t target_obj = script_get_obj(action->op_type[2], action->op_value[2], state);
 
-        if (state->invocation->script->num == 30250 || state->invocation->script->num == 30252) {
-            tig_debug_printf("Scourge[%d] L%d: PROC cast spell %d\n",
-                state->invocation->script->num, line, spell);
-        }
-
         MagicTechInvocation mt_invocation;
         magictech_invocation_init(&mt_invocation, source_obj, spell);
         sub_4440E0(target_obj, &(mt_invocation.target_obj));
@@ -2084,6 +2079,11 @@ int script_execute_action(ScriptAction* action, int line, ScriptState* state)
     case SAT_CAST_SPELL_ON: {
         int spell = script_get_value(action->op_type[0], action->op_value[0], state);
         int64_t target_obj = script_get_obj(action->op_type[1], action->op_value[1], state);
+
+        if (state->invocation->script->num == 30250 || state->invocation->script->num == 30252) {
+            tig_debug_printf("Scourge[%d] L%d: PROC cast spell %d\n",
+                state->invocation->script->num, line, spell);
+        }
 
         MagicTechInvocation mt_invocation;
         magictech_invocation_init(&mt_invocation, OBJ_HANDLE_NULL, spell);
