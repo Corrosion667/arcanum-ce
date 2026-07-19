@@ -3322,10 +3322,20 @@ void combat_turn_based_next_subturn(void)
 void combat_turn_based_end_turn(void)
 {
     DateTime datetime;
+    ObjectNode* node;
+    ObjectNode* next;
 
     combat_debug(OBJ_HANDLE_NULL, "TB End Turn");
     sub_45A950(&datetime, 1000);
     timeevent_inc_datetime(&datetime);
+
+    node = combat_critter_list.head;
+    while (node != NULL) {
+        next = node->next;
+        stat_poison_turn_based_process(node->obj);
+        node = next;
+    }
+
     combat_turn_based_begin_turn();
 }
 
