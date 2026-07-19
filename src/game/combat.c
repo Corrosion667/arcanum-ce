@@ -1862,16 +1862,33 @@ void combat_dmg(CombatContext* combat)
             && (spell_flags & OSF_STONED) == 0) {
             int remaining_experience = obj_field_int32_get(combat->target_obj, OBJ_F_NPC_EXPERIENCE_POOL);
             if (remaining_experience > 0) {
+                int experience_worth = obj_field_int32_get(combat->target_obj, OBJ_F_NPC_EXPERIENCE_WORTH);
                 int dam_ratio = 100 * dam / object_hp_max(combat->target_obj);
-                int awarded_experience = obj_field_int32_get(combat->target_obj, OBJ_F_NPC_EXPERIENCE_WORTH) * dam_ratio / 100;
+                int awarded_experience = experience_worth * dam_ratio / 100;
                 if (awarded_experience > remaining_experience) {
                     awarded_experience = remaining_experience;
                 }
                 obj_field_int32_set(combat->target_obj, OBJ_F_NPC_EXPERIENCE_POOL, remaining_experience - awarded_experience);
 
+                int experience_before = -1;
+                int experience_after = -1;
                 if (obj_field_int32_get(combat->field_30, OBJ_F_TYPE) == OBJ_TYPE_PC) {
+                    experience_before = stat_base_get(combat->field_30, STAT_EXPERIENCE_POINTS);
                     critter_give_xp(combat->field_30, awarded_experience);
+                    experience_after = stat_base_get(combat->field_30, STAT_EXPERIENCE_POINTS);
                 }
+                tig_debug_printf("XP damage: source=%s attacker=%lld target=%lld dam=%d hp_max=%d worth=%d pool=%d->%d base_award=%d pc_xp=%d->%d\n",
+                    combat->attacker_obj == OBJ_HANDLE_NULL ? "scripted-spell" : "combat",
+                    (long long)combat->field_30,
+                    (long long)combat->target_obj,
+                    dam,
+                    object_hp_max(combat->target_obj),
+                    experience_worth,
+                    remaining_experience,
+                    remaining_experience - awarded_experience,
+                    awarded_experience,
+                    experience_before,
+                    experience_after);
             }
         }
 

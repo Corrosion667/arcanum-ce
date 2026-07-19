@@ -699,7 +699,18 @@ void critter_notify_killed(int64_t victim_obj, int64_t killer_obj, int anim)
                 ObjectNode* node;
 
                 // 20% of the experience cost for killing.
-                critter_give_xp(pc_killer_obj, 20 * obj_field_int32_get(victim_obj, OBJ_F_NPC_EXPERIENCE_WORTH) / 100);
+                int experience_worth = obj_field_int32_get(victim_obj, OBJ_F_NPC_EXPERIENCE_WORTH);
+                int awarded_experience = 20 * experience_worth / 100;
+                int experience_before = stat_base_get(pc_killer_obj, STAT_EXPERIENCE_POINTS);
+                critter_give_xp(pc_killer_obj, awarded_experience);
+                int experience_after = stat_base_get(pc_killer_obj, STAT_EXPERIENCE_POINTS);
+                tig_debug_printf("XP kill: killer=%lld victim=%lld worth=%d base_award=%d pc_xp=%d->%d\n",
+                    (long long)pc_killer_obj,
+                    (long long)victim_obj,
+                    experience_worth,
+                    awarded_experience,
+                    experience_before,
+                    experience_after);
                 obj_field_int32_set(victim_obj, OBJ_F_NPC_EXPERIENCE_WORTH, 0);
 
                 // Adjust alignment.
