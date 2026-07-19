@@ -3410,7 +3410,7 @@ bool combat_check_action_points(int64_t obj, int required_action_points)
 {
     bool is_pc;
 
-    if (!combat_turn_based_active) {
+    if (!combat_turn_based_active || dword_5FC240 == NULL) {
         return true;
     }
 
