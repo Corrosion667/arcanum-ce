@@ -2222,6 +2222,10 @@ void MTComponentDamage_ProcFunc(void)
     CombatContext combat;
     int dam_min;
     int dam_max;
+    int rolled_damage = 0;
+    int damage_after_magic_resistance = 0;
+    bool damage_processed = false;
+    bool log_scourge_spell;
 
     if (stru_5E6D28.target_obj == OBJ_HANDLE_NULL) {
         return;
@@ -2239,6 +2243,9 @@ void MTComponentDamage_ProcFunc(void)
 
     dam_min = magictech_cur_component->data.damage.damage_min;
     dam_max = magictech_cur_component->data.damage.damage_max;
+    log_scourge_spell = magictech_cur_run_info->spell == SPELL_BOLT_OF_LIGHTNING
+        || magictech_cur_run_info->spell == SPELL_HARM
+        || magictech_cur_run_info->spell == SPELL_QUENCH_LIFE;
 
     if ((combat.dam_flags & CDF_SCALE) != 0) {
         if (obj_type_is_critter(magictech_cur_run_info->parent_obj.type)) {
@@ -2270,6 +2277,8 @@ void MTComponentDamage_ProcFunc(void)
     combat.flags |= 0x200 | 0x80;
 
     if (magictech_cur_component->data.damage.damage_type < DAMAGE_TYPE_COUNT) {
+        rolled_damage = combat.dam[magictech_cur_component->data.damage.damage_type];
+        damage_after_magic_resistance = rolled_damage;
         if (magictech_cur_run_info->field_144 != 0) {
             if ((combat.dam_flags & CDF_DEATH) == 0) {
                 int resisted = magictech_cur_run_info->field_144 * combat.dam[magictech_cur_component->data.damage.damage_type] / 100;
@@ -2277,13 +2286,44 @@ void MTComponentDamage_ProcFunc(void)
                     resisted = 1;
                 }
                 combat.dam[magictech_cur_component->data.damage.damage_type] -= resisted;
+                damage_after_magic_resistance = combat.dam[magictech_cur_component->data.damage.damage_type];
                 combat_dmg(&combat);
+                damage_processed = true;
+            } else {
+                damage_after_magic_resistance = 0;
             }
         } else {
             combat_dmg(&combat);
+            damage_processed = true;
         }
     } else if (magictech_cur_component->data.damage.damage_type == DAMAGE_TYPE_COUNT) {
+        rolled_damage = combat.dam[DAMAGE_TYPE_NORMAL];
+        damage_after_magic_resistance = rolled_damage;
         combat_acid_dmg(&combat);
+        damage_processed = true;
+    }
+
+    if (log_scourge_spell) {
+        int damage_after_type_resistance = 0;
+        if (damage_processed) {
+            if (magictech_cur_component->data.damage.damage_type < DAMAGE_TYPE_COUNT) {
+                damage_after_type_resistance = combat.dam[magictech_cur_component->data.damage.damage_type];
+            } else {
+                damage_after_type_resistance = combat.dam[DAMAGE_TYPE_NORMAL];
+            }
+        }
+        tig_debug_printf("SpellDmg: spell=%d (%s) type=%d range=%d-%d roll=%d magic_reduction=%d%% after_magic=%d after_type=%d final_hp=%d flags=0x%X\n",
+            magictech_cur_run_info->spell,
+            magictech_get_name(magictech_cur_run_info->spell),
+            magictech_cur_component->data.damage.damage_type,
+            dam_min,
+            dam_max,
+            rolled_damage,
+            magictech_cur_run_info->field_144,
+            damage_after_magic_resistance,
+            damage_after_type_resistance,
+            combat.total_dam,
+            combat.dam_flags);
     }
 
     dword_5E75D0 = obj_field_int32_get(combat.target_obj, OBJ_F_FLAGS);

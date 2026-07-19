@@ -1474,6 +1474,8 @@ void combat_dmg(CombatContext* combat)
         dam_flags |= CDF_DAMAGE_ARMOR;
     }
 
+    int dam_after_resist = dam;
+
     if (player_is_pc_obj(combat->attacker_obj)) {
         combat->game_difficulty = gamelib_game_difficulty_get();
 
@@ -1487,12 +1489,34 @@ void combat_dmg(CombatContext* combat)
         }
     }
 
+    int dam_after_difficulty = dam;
+
     if ((dam_flags & CDF_BONUS_DAM_200) != 0) {
         dam *= 3;
     } else if ((dam_flags & CDF_BONUS_DAM_100) != 0) {
         dam *= 2;
     } else if ((dam_flags & CDF_BONUS_DAM_50) != 0) {
         dam += dam / 2;
+    }
+
+    if (player_is_local_pc_obj(combat->attacker_obj)) {
+        const char* crit_mult = "none";
+
+        if ((dam_flags & CDF_BONUS_DAM_200) != 0) {
+            crit_mult = "x3";
+        } else if ((dam_flags & CDF_BONUS_DAM_100) != 0) {
+            crit_mult = "x2";
+        } else if ((dam_flags & CDF_BONUS_DAM_50) != 0) {
+            crit_mult = "x1.5";
+        }
+
+        tig_debug_printf("Final dam: %d (resist) -> %d (difficulty) -> %d | crit=%s%s%s\n",
+            dam_after_resist,
+            dam_after_difficulty,
+            dam,
+            crit_mult,
+            (dam_flags & CDF_STUN) != 0 ? " STUN" : "",
+            (dam_flags & CDF_KNOCKOUT) != 0 ? " KNOCKOUT" : "");
     }
 
     if (obj_type_is_critter(obj_type)) {
@@ -1838,16 +1862,33 @@ void combat_dmg(CombatContext* combat)
             && (spell_flags & OSF_STONED) == 0) {
             int remaining_experience = obj_field_int32_get(combat->target_obj, OBJ_F_NPC_EXPERIENCE_POOL);
             if (remaining_experience > 0) {
+                int experience_worth = obj_field_int32_get(combat->target_obj, OBJ_F_NPC_EXPERIENCE_WORTH);
                 int dam_ratio = 100 * dam / object_hp_max(combat->target_obj);
-                int awarded_experience = obj_field_int32_get(combat->target_obj, OBJ_F_NPC_EXPERIENCE_WORTH) * dam_ratio / 100;
+                int awarded_experience = experience_worth * dam_ratio / 100;
                 if (awarded_experience > remaining_experience) {
                     awarded_experience = remaining_experience;
                 }
                 obj_field_int32_set(combat->target_obj, OBJ_F_NPC_EXPERIENCE_POOL, remaining_experience - awarded_experience);
 
+                int experience_before = -1;
+                int experience_after = -1;
                 if (obj_field_int32_get(combat->field_30, OBJ_F_TYPE) == OBJ_TYPE_PC) {
+                    experience_before = stat_base_get(combat->field_30, STAT_EXPERIENCE_POINTS);
                     critter_give_xp(combat->field_30, awarded_experience);
+                    experience_after = stat_base_get(combat->field_30, STAT_EXPERIENCE_POINTS);
                 }
+                tig_debug_printf("XP damage: source=%s attacker=%lld target=%lld dam=%d hp_max=%d worth=%d pool=%d->%d base_award=%d pc_xp=%d->%d\n",
+                    combat->attacker_obj == OBJ_HANDLE_NULL ? "scripted-spell" : "combat",
+                    (long long)combat->field_30,
+                    (long long)combat->target_obj,
+                    dam,
+                    object_hp_max(combat->target_obj),
+                    experience_worth,
+                    remaining_experience,
+                    remaining_experience - awarded_experience,
+                    awarded_experience,
+                    experience_before,
+                    experience_after);
             }
         }
 
@@ -2377,6 +2418,14 @@ void combat_process_crit_hit(CombatContext* combat)
         chance += 10;
     }
 
+    if (player_is_local_pc_obj(combat->attacker_obj)) {
+        tig_debug_printf("Crit effect chance=%d (x3 if<=%d, x2 if<=%d, x1.5 if<=%d)\n",
+            chance,
+            chance + 10,
+            chance + 30,
+            chance + 60);
+    }
+
     if (!npc_attacks_pc) {
         if (random_between(1, 100) <= chance + 10) {
             combat->dam_flags |= CDF_BONUS_DAM_200;
@@ -2624,7 +2673,9 @@ void combat_calc_dmg(CombatContext* combat)
         spell_flags = obj_field_int32_get(combat->target_obj, OBJ_F_SPELL_FLAGS);
     }
 
+    extern bool item_weapon_damage_log_active;
     for (damage_type = 0; damage_type < DAMAGE_TYPE_COUNT; damage_type++) {
+        item_weapon_damage_log_active = true;
         item_weapon_damage(combat->weapon_obj,
             combat->attacker_obj,
             damage_type,
@@ -2632,6 +2683,7 @@ void combat_calc_dmg(CombatContext* combat)
             (combat->flags & 0x20000) != 0,
             &min_damage,
             &max_damage);
+        item_weapon_damage_log_active = false;
 
         if (damage_type == DAMAGE_TYPE_POISON
             && ((critter_flags & (OCF_UNDEAD | OCF_MECHANICAL)) != 0
@@ -2640,12 +2692,27 @@ void combat_calc_dmg(CombatContext* combat)
         } else {
             damage = random_between(min_damage, max_damage);
 
+            if (max_damage > 0
+                && combat->weapon_obj != OBJ_HANDLE_NULL
+                && obj_field_int32_get(combat->weapon_obj, OBJ_F_ITEM_DESCRIPTION_EFFECTS) == 30739) {
+                tig_debug_printf("Scourge dmg: type=%d ROLL=%d in final range %d-%d\n",
+                    damage_type, damage, min_damage, max_damage);
+            }
+
             switch (damage_type) {
             case DAMAGE_TYPE_NORMAL:
                 if ((combat->flags & 0x8000) != 0) {
-                    damage += basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB) * 5;
+                    int backstab_level = basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB);
+                    int backstab_bonus = backstab_level * 5;
+                    damage += backstab_bonus;
+                    tig_debug_printf("  +backstab %d (unaware, lvl %d x5) -> %d\n",
+                        backstab_bonus, backstab_level, damage);
                 } else if ((combat->flags & 0x4000) != 0) {
-                    damage += basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB);
+                    int backstab_level = basic_skill_level(combat->attacker_obj, BASIC_SKILL_BACKSTAB);
+                    int backstab_bonus = backstab_level;
+                    damage += backstab_bonus;
+                    tig_debug_printf("  +backstab %d (aware, lvl %d x1) -> %d\n",
+                        backstab_bonus, backstab_level, damage);
                 }
                 break;
             case DAMAGE_TYPE_FATIGUE:
@@ -2699,12 +2766,22 @@ void combat_apply_resistance(CombatContext* combat)
     }
 
     for (damage_type = 0; damage_type < DAMAGE_TYPE_COUNT; damage_type++) {
+        int before = combat->dam[damage_type];
+
         resistance = object_get_resistance(combat->target_obj, combat_damage_to_resistance_tbl[damage_type], false);
         if (damage_type == DAMAGE_TYPE_FATIGUE) {
             resistance = 3 * resistance / 4;
         }
         if (resistance > 0) {
             combat->dam[damage_type] -= resistance * combat->dam[damage_type] / 100;
+        }
+
+        if (before != 0 && player_is_local_pc_obj(combat->attacker_obj)) {
+            tig_debug_printf("Resist: dmgtype=%d resist=%d%% dam %d -> %d\n",
+                damage_type,
+                resistance,
+                before,
+                combat->dam[damage_type]);
         }
     }
 }
