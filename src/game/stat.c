@@ -13,6 +13,7 @@
 #include "game/magictech.h"
 #include "game/mes.h"
 #include "game/obj.h"
+#include "game/obj_pool.h"
 #include "game/object.h"
 #include "game/player.h"
 #include "game/sector.h"
