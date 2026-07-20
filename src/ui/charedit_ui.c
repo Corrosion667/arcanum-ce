@@ -1447,7 +1447,9 @@ bool charedit_window_message_filter(TigMessage* msg)
                 if (msg->data.button.button_handle == stru_5C8028[index].button_handle) {
                     param = stru_5C8028[index].art_num;
                     value = charedit_stat_value_get(charedit_obj, param);
-                    if (value == dword_64D304[param]) {
+                    if (value == dword_64D304[param]
+                        && (param == CHAREDIT_STAT_HP_PTS_MAXIMUM
+                            || param == CHAREDIT_STAT_FATIGUE_PTS_MAXIMUM)) {
                         charedit_error_msg.str = charedit_errors[CHAREDIT_ERR_STAT_AT_ACCEPTED_LEVEL];
                         intgame_message_window_display_msg(&charedit_error_msg);
                         return true;
@@ -2473,10 +2475,7 @@ void charedit_refresh_tech_win(void)
 
     if (degree > 0
         && (charedit_mode != CHAREDIT_MODE_PASSIVE
-            || charedit_follower_editable())
-        && (charedit_mode == CHAREDIT_MODE_CREATE
-            || charedit_mode == CHAREDIT_MODE_3
-            || dword_64DEEC[charedit_selected_tech] < degree)) {
+            || charedit_follower_editable())) {
         tig_art_interface_id_create(648, 0, 0, 0, &(button_data.art_id));
         button_data.x = charedit_tech_degree_icons_x[degree - 1];
         button_data.y = charedit_tech_degree_icons_y[degree - 1];
@@ -2981,12 +2980,7 @@ bool charedit_skills_win_message_filter(TigMessage* msg)
                     // FIX: Original code has mess with plus/minus buttons, but
                     // it does not affect outcome as both plus/minus buttons
                     // refer to the same skills.
-                    if (basic_skill_points_get(charedit_obj, charedit_skills_minus_buttons[index].art_num) == dword_64C7B8[charedit_skills_minus_buttons[index].art_num]) {
-                        charedit_error_msg.str = charedit_errors[CHAREDIT_ERR_SKILL_AT_ACCEPTED_LEVEL];
-                        intgame_message_window_display_msg(&charedit_error_msg);
-                    } else {
-                        skill_ui_dec_skill(charedit_obj, charedit_skills_minus_buttons[index].art_num);
-                    }
+                    skill_ui_dec_skill(charedit_obj, charedit_skills_minus_buttons[index].art_num);
 
                     return true;
                 }
@@ -3057,12 +3051,7 @@ bool sub_55D6F0(TigMessage* msg)
                 }
 
                 if (msg->data.button.button_handle == charedit_skills_minus_buttons[BASIC_SKILL_COUNT + index].button_handle) {
-                    if (tech_skill_points_get(charedit_obj, charedit_skills_minus_buttons[BASIC_SKILL_COUNT + index].art_num) == dword_64C82C[charedit_skills_minus_buttons[BASIC_SKILL_COUNT + index].art_num]) {
-                        charedit_error_msg.str = charedit_errors[CHAREDIT_ERR_SKILL_AT_ACCEPTED_LEVEL];
-                        intgame_message_window_display_msg(&charedit_error_msg);
-                    } else {
-                        skill_ui_dec_skill(charedit_obj, charedit_skills_minus_buttons[BASIC_SKILL_COUNT + index].art_num + 12);
-                    }
+                    skill_ui_dec_skill(charedit_obj, charedit_skills_minus_buttons[BASIC_SKILL_COUNT + index].art_num + 12);
                     return true;
                 }
             }
